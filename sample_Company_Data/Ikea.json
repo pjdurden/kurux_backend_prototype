@@ -1,0 +1,11 @@
+{
+    "Company_Name": "Ikea ind Ltd",
+    "Ticket_Symbol":"IKD",
+    "Stock_Price": "10000",
+    "Stock_Circulating": "10000000",
+    "Stock_Sold": "52000",
+    "Daily_Volume":"500000",
+    "Net_Income": "150000000",
+    "Revenue": "500000000",
+    "Assets": "200000000"
+}
