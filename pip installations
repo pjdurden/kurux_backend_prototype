@@ -1,0 +1,12 @@
+The following commands need to be run before running the application. 
+
+make sure python is installed and Mongo DB is setup
+
+pip install flask
+pip install pymongo
+
+To run the app do this 
+$ flask --app hello run --debug
+
+to run the app in debug mode in VSCODE
+$ flask --app hello run --debug --no-debugger --no-reload
