@@ -1,0 +1,11 @@
+{
+    "Company_Name": "Nandini Ltd",
+    "Ticket_Symbol":"NDN",
+    "Stock_Price": "30",
+    "Stock_Circulating": "30000",
+    "Stock_Sold": "150",
+    "Daily_Volume":"1500",
+    "Net_Income": "450000",
+    "Revenue": "1500000",
+    "Assets": "600000"
+}
