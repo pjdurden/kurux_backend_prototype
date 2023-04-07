@@ -1,0 +1,11 @@
+{
+    "Company_Name": "Udupi Ltd",
+    "Ticket_Symbol":"UDP",
+    "Stock_Price": "10",
+    "Stock_Circulating": "10000",
+    "Stock_Sold": "52",
+    "Daily_Volume":"500",
+    "Net_Income": "150000",
+    "Revenue": "500000",
+    "Assets": "200000"
+}
