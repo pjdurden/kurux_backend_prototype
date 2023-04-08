@@ -45,6 +45,8 @@ user_collection = user_db["Portfolio"]
 user_collection.create_index(
     [('User_Id', 1)], name='User_Id', unique=True, sparse=True)
 
+user_cred_collection = user_db["User_cred"]
+
 
 def add_user_data():
     try:
@@ -65,6 +67,31 @@ def add_user_data():
         print({'error': str(e)})
 
 
+user_cred_collection = user_db["User_cred"]
+user_cred_collection.create_index(
+    [('User_Id', 1)], name='User_Id', unique=True, sparse=True)
+
+
+def add_user_cred():
+    try:
+        # print(ROOT_DIR)
+        json_dir_name = '/sample_cred_data'
+        json_pattern = os.path.join(ROOT_DIR + json_dir_name, "*.json")
+        # print(json_pattern)
+        filelist = glob(json_pattern)
+        # print(filelist)
+        for filename in filelist:
+            with open(filename) as f:
+                file_data = json.load(f)
+                # print(file_data)
+                status = user_cred_collection.insert_one(file_data)
+        print({'insert': 'SUCCESS'})
+
+    except Exception as e:
+        print({'error': str(e)})
+
+
 add_data_companies()
 add_user_data()
+add_user_cred()
 print(client.list_database_names())

@@ -1,12 +1,13 @@
 # main function to call the APIs
 from flask import Flask
 from flask import Blueprint
-from RestClient.ClientConnection import *
+from RestClient import LISTED_STOCKSAPIs, AuthenticateAPI
 
 
 app = Flask('REST_API')
 
-app.register_blueprint(query_blueprint)
+app.register_blueprint(LISTED_STOCKSAPIs.query_blueprint)
+app.register_blueprint(AuthenticateAPI.authenticate_blueprint)
 # app.run(debug=True, use_debugger=False, use_reloader=False)
 
 
