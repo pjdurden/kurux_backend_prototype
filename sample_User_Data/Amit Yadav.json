@@ -8,12 +8,14 @@
             {
                 "Company_Name": "Action Ltd",
                 "Ticker_Symbol":"ACT",
+                "Stock_Units": "10",
                 "Buying_Price":"18"
             },
         "1":
             {
                 "Company_Name": "Ikea ind Ltd",
                 "Ticket_Symbol":"IKD",
+                "Stock_Units":"3",
                 "Buying_Price":"999"
             }
 
