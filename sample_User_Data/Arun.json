@@ -1,0 +1,23 @@
+{
+    "User_Name": "Arun vaishy",
+    "User_Id":"Arun22",
+    "DOB": "10/03/99",
+    "Wallet_Balance":"124430",
+    "Stocks": {
+        "0":
+            {
+                "Company_Name": "Udupi Ltd",
+                "Ticket_Symbol":"UDP",
+                "Stock_Units": "30",
+                "Buying_Price":"20"
+            },
+        "1":
+            {
+                "Company_Name": "Ikea ind Ltd",
+                "Ticket_Symbol":"IKD",
+                "Stock_Units":"3",
+                "Buying_Price":"19999"
+            }
+
+    }    
+}

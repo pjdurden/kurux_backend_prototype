@@ -1,0 +1,23 @@
+{
+    "User_Name": "Rahul Ghunawat",
+    "User_Id":"Rahul456",
+    "DOB": "10/03/99",
+    "Wallet_Balance":"13230",
+    "Stocks": {
+        "0":
+            {
+                "Company_Name": "Haldirams",
+                "Ticket_Symbol":"HLDR",
+                "Stock_Units": "10",
+                "Buying_Price":"52"
+            },
+        "1":
+            {
+                "Company_Name": "Ikea ind Ltd",
+                "Ticket_Symbol":"IKD",
+                "Stock_Units":"6",
+                "Buying_Price":"15555"
+            }
+
+    }    
+}

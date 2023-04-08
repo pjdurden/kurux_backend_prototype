@@ -1,0 +1,23 @@
+{
+    "User_Name": "Rahul Dalal",
+    "User_Id":"Rahul69",
+    "DOB": "30/08/99",
+    "Wallet_Balance":"30",
+    "Stocks": {
+        "0":
+            {
+                "Company_Name": "Haldirams",
+                "Ticket_Symbol":"HLDR",
+                "Stock_Units": "10",
+                "Buying_Price":"52"
+            },
+        "1":
+            {
+                "Company_Name": "Infra de KA government",
+                "Ticket_Symbol":"IKG",
+                "Stock_Units":"6",
+                "Buying_Price":"15555"
+            }
+
+    }    
+}
