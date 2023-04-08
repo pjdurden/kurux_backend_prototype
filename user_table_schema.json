@@ -1,0 +1,23 @@
+{
+    "User_Name": "Action Ltd",
+    "User_Id":"ACT",
+    "DOB": "20",
+    "Wallet_Balance":"500",
+    "Stocks": {
+        "0":
+            {
+                "Company_Name": "Action Ltd",
+                "Ticker_Symbol":"ACT",
+                "Buying_Price":"18"
+            },
+        "1":
+            {
+                "Company_Name": "Ikea ind Ltd",
+                "Ticket_Symbol":"IKD",
+                "Buying_Price":"999"
+            }
+
+    }    
+}
+
+User _Id = total no. of entries in user database + 1
