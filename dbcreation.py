@@ -15,7 +15,11 @@ new_collection = new_db["LISTED_STOCKS"]
 # adding data to the newly created table
 
 
-def add_data():
+new_collection.create_index(
+    [('Ticket_Symbol', 1)], name='Ticket_Symbol', unique=True, sparse=True)
+
+
+def add_data_companies():
     try:
 
         ROOT_DIR = os.path.dirname(os.path.realpath('__file__'))
@@ -36,5 +40,5 @@ def add_data():
         print({'error': str(e)})
 
 
-# add_data()
+add_data_companies()
 print(client.list_database_names())
