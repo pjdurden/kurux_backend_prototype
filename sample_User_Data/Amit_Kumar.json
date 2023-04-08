@@ -1,15 +1,15 @@
 {
-    "User_Name": "Amit Yadav",
-    "User_Id":"Amit22",
-    "DOB": "30/12/99",
-    "Wallet_Balance":"500",
+    "User_Name": "Amit Kumar",
+    "User_Id":"Amit23",
+    "DOB": "03/02/00",
+    "Wallet_Balance":"100",
     "Stocks": {
         "0":
             {
-                "Company_Name": "Action Ltd",
-                "Ticket_Symbol":"ACT",
-                "Stock_Units": "10",
-                "Buying_Price":"18"
+                "Company_Name": "Udupi Ltd",
+                "Ticket_Symbol":"UDP",
+                "Stock_Units": "20",
+                "Buying_Price":"10"
             },
         "1":
             {
