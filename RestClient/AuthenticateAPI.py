@@ -32,8 +32,13 @@ def authenticate():
             user_name = request_json["User_Id"]
             user_pass = request_json["User_Pass"]
             # print(user_name, user_pass)
-            status = json.loads(
-                dumps(cred_collection.find({"User_Id": user_name})))
+
+            status_info = dumps(cred_collection.find({"User_Id": user_name}))
+
+            status = json.loads(status_info)
+
+            if(len(status) == 0):
+                return dumps({'error': 'User does not exist'})
             # print(status[0])
             # for j in status:
             #     print(j)
