@@ -255,10 +255,10 @@ company_buyer_db = client.Company_Buy_Order
 
 def add_buy_order(company_to_buy, price_per_unit, units_to_buy, buyer_id):
     try:
-        sell_order_collection = company_buyer_db[company_to_buy]
-        sell_order_inf = dumps(sell_order_collection.find())
+        buy_order_collection = company_buyer_db[company_to_buy]
+        buy_order_inf = dumps(buy_order_collection.find())
 
-        status = sell_order_collection.insert_one(
+        status = buy_order_collection.insert_one(
             {
                 "Units": units_to_buy,
                 "Price_Per_Unit": price_per_unit,
