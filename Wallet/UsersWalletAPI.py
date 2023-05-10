@@ -7,11 +7,7 @@ from env import *
 from DBUtil.pushDataUtil import pushData
 from RestClientHelper.ClientConnectionHelper import *
 from flask import Blueprint
-from Wallet import WalletUtils
-
-client = MongoClient(mongoClient)
-cred_db = client.Users
-cred_collection = cred_db.User_cred
+from Wallet import UsersWalletUtils
 
 wallet_blueprint = Blueprint('wallet_api', 'REST_API')
 
@@ -31,7 +27,7 @@ def check_balance():
             user_id = request_json["User_Id"]
             user_pin = request_json["PIN"]
 
-            status = WalletUtils.check_balance(user_id, user_pin)
+            status = UsersWalletUtils.check_balance(user_id, user_pin)
             if(status[0] == True):
                 return dumps({'balance': status[1]})
             else:
@@ -64,7 +60,7 @@ def send_money():
             if(sender_user_id == reciever_user_id):
                 return dumps({'error': 'Sender and Reciever cannot be the same'})
 
-            status = WalletUtils.send_money(
+            status = UsersWalletUtils.send_money(
                 sender_user_id, reciever_user_id, sender_pin, amount)
             if(status[0] == True):
                 return dumps({'msg': status[1]})

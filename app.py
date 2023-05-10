@@ -2,14 +2,16 @@
 from flask import Flask
 from flask import Blueprint
 from RestClient import LISTED_STOCKSAPIs, AuthenticateAPI
-from Wallet import WalletAPI
+from Wallet import UsersWalletAPI
+from BuyStocks import BuyStocksAPI
 
 
 app = Flask('REST_API')
 
 app.register_blueprint(LISTED_STOCKSAPIs.query_blueprint)
 app.register_blueprint(AuthenticateAPI.authenticate_blueprint)
-app.register_blueprint(WalletAPI.wallet_blueprint)
+app.register_blueprint(UsersWalletAPI.wallet_blueprint)
+app.register_blueprint(BuyStocksAPI.buy_stocks_blueprint)
 
 # app.run(debug=True, use_debugger=False, use_reloader=False)
 

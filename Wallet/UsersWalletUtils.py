@@ -36,6 +36,9 @@ def send_money(sender_addr, reciever_addr, sender_pin, amount):
         if(len(reciever) == 0):
             return [False, "Reciever Address does not exist"]
 
+        if(amount < 0):
+            return [False, "Invalid amount"]
+
         # print(sender[0]['balance'])
 
         if (int(sender[0]['balance']) < int(amount)):
@@ -73,8 +76,8 @@ def check_balance(addr, pin):
         addr_inf = json.loads(dumps(cred_collection.find({"User_Id": addr})))
         if(len(addr_inf) == 0):
             return [False, "User Does not Exist"]
-        print(addr_inf)
-        print(pin)
+        # print(addr_inf)
+        # print(pin)
         if(addr_inf[0]['PIN'] != pin):
             return [False, "Pin is wrong"]
         return [True, addr_inf[0]['balance']]
