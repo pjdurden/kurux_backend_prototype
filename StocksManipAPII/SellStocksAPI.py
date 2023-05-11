@@ -101,7 +101,7 @@ def transfer_stocks_sellorder(seller_id, buyer_order_info, units, company_to_sel
         seller_user_dump = dumps(
             portfolio_collection.find({'User_Id': seller_id}))
         buyer_user_dump = dumps(portfolio_collection.find(
-            {'User_Id': buyer_order_info['Seller_Id']}))
+            {'User_Id': buyer_order_info['Buyer_Id']}))
 
         seller_user_inf = json.loads(seller_user_dump)
         buyer_user_inf = json.loads(buyer_user_dump)
@@ -140,7 +140,7 @@ def transfer_stocks_sellorder(seller_id, buyer_order_info, units, company_to_sel
 
         # print(seller_user_inf[0]['Stocks'][seller_port_index])
 
-        buying_price = buyer_user_inf[0]['Stocks'][buyer_port_index]['Price_Per_Unit']
+        buying_price = buyer_order_info['Price_Per_Unit']
 
         if buyer_port_index != -1:
             buyer_user_inf[0]['Stocks'][buyer_port_index]['Stock_Units'] = int(
