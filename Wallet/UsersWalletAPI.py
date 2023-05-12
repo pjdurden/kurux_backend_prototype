@@ -17,7 +17,7 @@ wallet_blueprint = Blueprint('wallet_api', 'REST_API')
 #     "User_Id":"Amit22",
 #     "PIN": "5432122"
 # }
-@wallet_blueprint.route("/check_balance", methods=['POST'])
+@wallet_blueprint.route("/wallet/check_balance", methods=['POST'])
 def check_balance():
     try:
 
@@ -45,7 +45,7 @@ def check_balance():
 #     "PIN": "5432122"
 #     "Amount": "133"
 # }
-@wallet_blueprint.route("/send_money", methods=['POST'])
+@wallet_blueprint.route("/wallet/send_money", methods=['POST'])
 def send_money():
     try:
 
@@ -79,7 +79,7 @@ def send_money():
 #     "Amount": "133",
 #     "Master_Pass": "M4ST3R9A55"
 # }
-@wallet_blueprint.route("/add_money", methods=['POST'])
+@wallet_blueprint.route("/wallet/add_money", methods=['POST'])
 def add_money():
     try:
 

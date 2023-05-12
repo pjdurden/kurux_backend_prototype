@@ -206,3 +206,35 @@ def add_user():
             return 'Content-Type not supported'
     except Exception as e:
         return dumps({'error': str(e)})
+
+# pass the following info to this
+# {
+#     "User_Name": "Amit Yadav",
+#     "User_Id":"Amit22",
+#     "DOB": "30/12/99",
+#     "Email": "amityadav@gmail.com",
+#     "Phone": "4343432434"
+# }
+
+
+@authenticate_blueprint.route("/auth/add_user_details", methods=['POST'])
+def add_user_details():
+    try:
+        content_type = request.headers.get('Content-Type')
+        if (content_type == 'application/json'):
+            request_json = request.get_json()
+            user_name = request_json["User_Id"]
+
+            temp = json.loads(
+                dumps(client[user_name].User_Details.find({"User_Id": user_name})))
+
+            if len(temp) != 0:
+                return dumps({'error': 'User details already exists'})
+
+            status = client[user_name].User_Details.insert_one(request_json)
+
+            return dumps({'Success': 'User Details Added'})
+        else:
+            return 'Content-Type not supported'
+    except Exception as e:
+        return dumps({'error': str(e)})
