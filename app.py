@@ -1,7 +1,8 @@
 # main function to call the APIs
 from flask import Flask
 from flask import Blueprint
-from RestClient import LISTED_STOCKSAPIs, AuthenticateAPI
+from Company_List import LISTED_STOCKSAPIs
+from Auth import AuthenticateAPI
 from Wallet import UsersWalletAPI
 from StocksManipAPII import BuyStocksAPI, SellStocksAPI
 
