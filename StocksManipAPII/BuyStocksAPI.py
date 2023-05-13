@@ -1,15 +1,14 @@
 import sys
-from flask import Flask
 from flask import request
 from pymongo import MongoClient
 from bson.json_util import dumps
 import json
+from Auth.AuthenticateAPI import check_pin
 from env import *
-from DBUtil.pushDataUtil import pushData
 from RestClientHelper.ClientConnectionHelper import *
 from flask import Blueprint
 from Wallet import UsersWalletUtils
-from bson.objectid import ObjectId
+from unique_id_generator import unique_id_generator
 
 
 client = MongoClient(mongoClient)
@@ -27,12 +26,12 @@ buy_stocks_blueprint = Blueprint('buy_ipo_equity', 'REST_API')
 #     "Buyer_Id":"Amit22",
 #     "PIN": "321455",
 #     "Ticker_Symbol": "BSL",
-#     "Units": "2"
+#     "Units": "2",
 #     "Price_Per_Unit":"234"
 # }
 
 
-@buy_stocks_blueprint.route("/buy_equity", methods=['POST'])
+@buy_stocks_blueprint.route("/equity/buy_equity", methods=['POST'])
 def buy_equity():
     try:
         # dataToPush = pushData('ABC', '100')
@@ -43,12 +42,15 @@ def buy_equity():
             buyer_id = request_json["Buyer_Id"]
             buyer_pin = request_json["PIN"]
             company_to_buy = request_json["Ticker_Symbol"]
-            units_to_buy = request_json["Units"]
-            price_per_unit = request_json["Price_Per_Unit"]
+            units_to_buy = int(request_json["Units"])
+            price_per_unit = int(request_json["Price_Per_Unit"])
             # print(user_name, user_pass)
 
+            if not check_pin(buyer_id, buyer_pin)[0]:
+                return dumps({'error': 'Pin entered is wrong'})
+
             company_info = dumps(inventory_collection.find(
-                {"Ticket_Symbol": company_to_buy}))
+                {"Ticker_Symbol": company_to_buy}))
 
             company_entry = json.loads(company_info)
 
@@ -58,6 +60,15 @@ def buy_equity():
             if(int(units_to_buy) < 0):
                 return dumps({'error': 'Invalid value in Units'})
 
+            total_money_spent = int(units_to_buy) * int(price_per_unit)
+
+            user_balance = UsersWalletUtils.check_balance(buyer_id, buyer_pin)
+            if user_balance[0] == False:
+                return dumps({'error':  user_balance[1]})
+
+            if int(total_money_spent) > int(user_balance[1]):
+                return dumps({'error': "Buyer has insufficient funds"})
+
             status = find_sell_order(
                 company_to_buy, units_to_buy, price_per_unit, buyer_id, buyer_pin)
 
@@ -66,28 +77,19 @@ def buy_equity():
 
             seller_order_info = status[1]
 
-            remaining_amount = int(
-                units_to_buy) * int(int(price_per_unit) - int(seller_order_info['Price_Per_Unit']))
+            money_to_send_to_buyer = int(
+                units_to_buy) * int(seller_order_info['Price_Per_Unit'])
 
-            total_money_sent = int(units_to_buy) * int(price_per_unit)
-
-            user_balance = UsersWalletUtils.check_balance(buyer_id, buyer_pin)
-            if user_balance[0] == False:
-                return dumps({'error':  user_balance[1]})
-
-            if int(total_money_sent) > int(user_balance[1]):
-                return dumps({'error': "Buyer has insufficient funds"})
-
-            # sending money from buyer to seller
+            # send money to intermediary account
             UsersWalletUtils.send_money(
-                buyer_id, seller_order_info['Seller_Id'], buyer_pin, int(int(units_to_buy) * int(seller_order_info['Price_Per_Unit'])))
+                buyer_id, "KuruX", buyer_pin, total_money_spent)
 
-            # taking commision as difference
+            # sending money from intermediary to seller
             UsersWalletUtils.send_money(
-                buyer_id, "KuruX", buyer_pin, int(int(units_to_buy) * int(remaining_amount)))
+                "KuruX", seller_order_info['Seller_Id'], "379009", money_to_send_to_buyer)
 
             transfer_stock_status = transfer_stocks_buyorder(buyer_id, seller_order_info,
-                                                             units_to_buy, company_to_buy, price_per_unit, company_entry[0]['Company_Name'])
+                                                             units_to_buy, company_to_buy, price_per_unit, company_entry[0]['Company_Name'], total_money_spent)
 
             if(transfer_stock_status[0] == False):
                 return transfer_stock_status[1]
@@ -104,42 +106,15 @@ def buy_equity():
         return dumps({'error': str(e)})
 
 
-portfolio_db = client.Users
-
-
-def transfer_stocks_buyorder(buyer_id, seller_order_info, units, company_to_buy, buying_price, company_name):
+def transfer_stocks_buyorder(buyer_id, seller_order_info, units, company_to_buy, buying_price, company_name, total_spent):
     try:
-        portfolio_collection = portfolio_db['Portfolio']
+
         buyer_user_dump = dumps(
-            portfolio_collection.find({'User_Id': buyer_id}))
-        seller_user_dump = dumps(portfolio_collection.find(
-            {'User_Id': seller_order_info['Seller_Id']}))
+            client[buyer_id]['Portfolio'].find({'Ticker_Symbol': company_to_buy}))
 
         buyer_user_inf = json.loads(buyer_user_dump)
-        seller_user_inf = json.loads(seller_user_dump)
 
         # print(seller_user_inf[0]['Stocks']['0'])
-
-        seller_port_index = -1
-
-        for seller_ind_stocks in seller_user_inf[0]['Stocks']:
-            if seller_user_inf[0]['Stocks'][seller_ind_stocks]['Ticket_Symbol'] == company_to_buy:
-                seller_port_index = seller_ind_stocks
-                break
-            print(seller_user_inf[0]['Stocks'][seller_ind_stocks])
-
-        buyer_port_index = -1
-
-        for buyer_ind_stocks in buyer_user_inf[0]['Stocks']:
-            if buyer_user_inf[0]['Stocks'][buyer_ind_stocks]['Ticket_Symbol'] == company_to_buy:
-                buyer_port_index = buyer_ind_stocks
-                break
-            print(buyer_user_inf[0]['Stocks'][buyer_ind_stocks])
-
-        # print(buyer_port_index)
-
-        # print("\n\n")
-
         # print(seller_port_index)
 
         seller_remaining_units = int(
@@ -148,18 +123,33 @@ def transfer_stocks_buyorder(buyer_id, seller_order_info, units, company_to_buy,
         # print(seller_order_info)
 
         # removing sell order
+        seller_order_id = seller_order_info['_id']
         if seller_remaining_units != 0:
-            client.Company_Sell_Order[company_to_buy].update_one(
-                {"_id": ObjectId(seller_order_info['_id']['$oid'])},
+
+            client[seller_order_info['Seller_Id']]['Sell_Order'].update_one(
+                {"_id": seller_order_id},
                 {
                     "$set": {
-                        "Units": str(seller_remaining_units)
+                        "Units": seller_remaining_units
+                    }
+                }
+            )
+
+            client.Company_Sell_Order[company_to_buy].update_one(
+                {"_id": seller_order_id},
+                {
+                    "$set": {
+                        "Units": seller_remaining_units
                     }
                 }
             )
         else:
+            client[seller_order_info['Seller_Id']]['Sell_Order'].delete_one(
+                {"_id": seller_order_id}
+            )
             client.Company_Sell_Order[company_to_buy].delete_one(
-                {"_id": ObjectId(seller_order_info['_id']['$oid'])})
+                {"_id": seller_order_id}
+            )
 
         # print(seller_remaining_units)
 
@@ -183,23 +173,39 @@ def transfer_stocks_buyorder(buyer_id, seller_order_info, units, company_to_buy,
 
         # print(buyer_user_inf[0]['Stocks'])
 
-        if buyer_port_index != -1:
-            buyer_user_inf[0]['Stocks'][buyer_port_index]['Stock_Units'] = int(
-                buyer_user_inf[0]['Stocks'][buyer_port_index]['Stock_Units']) + int(units)
-        else:
-            size_buyer = str(len(buyer_user_inf[0]['Stocks']))
-            buyer_user_inf[0]['Stocks'][size_buyer] = {
-                'Company_Name': company_name, 'Ticket_Symbol': company_to_buy, 'Stock_Units': units, 'Buying_Price': buying_price}
-
-        # print("\n\n")
-        # print(buyer_user_inf[0]['Stocks'])
-
-        portfolio_collection.update_one(
-            {"User_Id": buyer_id},
-            {
-                "$set": {
-                    "Stocks": buyer_user_inf[0]['Stocks']
+        # Transfering stock
+        if len(buyer_user_inf) != 0:
+            client[buyer_id]['Portfolio'].update_one(
+                {"Ticker_Symbol": company_to_buy},
+                {
+                    "$inc": {"Units": units}
                 }
+            )
+        else:
+            client[buyer_id]['Portfolio'].insert_one(
+                {
+                    "Company_Name": company_name,
+                    "Ticker_Symbol": company_to_buy,
+                    "Units": units
+                }
+            )
+
+        # add order_history
+        client[buyer_id]['Order_History'].insert_one(
+            {
+                "Ticker_Symbol": company_to_buy,
+                "Type": "Buy_Order",
+                "Units": units,
+                "Price_Per_Unit": buying_price
+            }
+        )
+
+        client[seller_order_info['Seller_Id']]['Order_History'].insert_one(
+            {
+                "Ticker_Symbol": company_to_buy,
+                "Type": "Sell_Order",
+                "Units": units,
+                "Price_Per_Unit": seller_order_info['Price_Per_Unit']
             }
         )
 
@@ -258,17 +264,33 @@ def add_buy_order(company_to_buy, price_per_unit, units_to_buy, buyer_id, buyer_
     try:
         buy_order_collection = company_buyer_db[company_to_buy]
 
-        status = buy_order_collection.insert_one(
-            {
-                "Units": units_to_buy,
-                "Price_Per_Unit": price_per_unit,
-                "Buyer_Id": buyer_id
-            }
-        )
+        id_stat = unique_id_generator.give_new_unique_id()
 
-        # sending money from user to KuruX Wallet ( so that it can be used for fulfillment of order)
-        UsersWalletUtils.send_money(
-            buyer_id, "KuruX", buyer_pin, int(int(units_to_buy) * int(price_per_unit)))
+        if id_stat[0] != False:
+
+            buy_order_collection.insert_one(
+                {
+                    "_id": id_stat[1],
+                    "Units": units_to_buy,
+                    "Price_Per_Unit": price_per_unit,
+                    "Buyer_Id": buyer_id
+                }
+            )
+
+            client[buyer_id].Buy_Order.insert_one(
+                {
+                    "_id": id_stat[1],
+                    "Units": units_to_buy,
+                    "Price_Per_Unit": price_per_unit,
+                    "Buyer_Id": buyer_id,
+                    "Ticker_Symbol": company_to_buy
+                }
+            )
+
+        # sending money from user to Intermediate Wallet ( so that it can be used for fulfillment of order)
+            UsersWalletUtils.send_money(
+                buyer_id, "Intermediate", buyer_pin, int(int(units_to_buy) * int(price_per_unit)))
+        return [True, "Success"]
 
     except Exception as e:
         return dumps({'error': str(e)})

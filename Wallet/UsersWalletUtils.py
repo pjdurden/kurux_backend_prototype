@@ -71,6 +71,24 @@ def send_money(sender_addr, reciever_addr, sender_pin, amount):
                 }
             }
         )
+
+        # add transaction history
+        client[sender_addr]['Tran_History'].insert(
+            {
+                "User_Id": sender_addr,
+                "Amount": int(amount),
+                "Type": "Sent",
+                "Message": "Sent money to "+str(reciever_addr)
+            }
+        )
+        client[reciever_addr]['Tran_History'].insert(
+            {
+                "User_Id": reciever_addr,
+                "Amount": int(amount),
+                "Type": "Recieved",
+                "Message": "Recieved money from "+str(sender_addr)
+            }
+        )
         return [True, "Transaction Success"]
     except Exception as e:
         return [False, "Unable to do Transaction mongo error"]
@@ -120,6 +138,16 @@ def add_money(addr, pin, amount, master_pass):
                 "$set": {
                     "balance": final_balance_sender
                 }
+            }
+        )
+
+        # add transaction history
+        client[addr]['Tran_History'].insert(
+            {
+                "User_Id": addr,
+                "Amount": int(amount),
+                "Type": "Recieved",
+                "Message": "added money into wallet"
             }
         )
 
