@@ -1,6 +1,3 @@
 # mongoClient = 'localhost:27017'
-import os
-
-
-mongoClient = os.environ.get('MONGODB_URI')
+mongoClient = 'mongodb+srv://KuruX_Test:KuruX_Test@kuruxtest.dcvfgnk.mongodb.net/?retryWrites=true&w=majority'
 dbName = 'LISTED_STOCKS'
