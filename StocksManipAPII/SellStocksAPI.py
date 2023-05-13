@@ -274,7 +274,7 @@ def add_sell_order(company_to_sell, price_per_unit, units_to_sell, seller_id, is
                     "Units": units_to_sell,
                     "Price_Per_Unit": price_per_unit,
                     "Seller_Id": seller_id,
-                    "Is_Owner": is_owner
+                    "Is_Owner": int(is_owner)
 
                 }
             )
@@ -285,7 +285,7 @@ def add_sell_order(company_to_sell, price_per_unit, units_to_sell, seller_id, is
                     "Units": units_to_sell,
                     "Price_Per_Unit": price_per_unit,
                     "Seller_Id": seller_id,
-                    "Is_Owner": is_owner,
+                    "Is_Owner": int(is_owner),
                     "Ticker_Symbol": company_to_sell
                 }
             )

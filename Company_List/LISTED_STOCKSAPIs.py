@@ -8,6 +8,8 @@ from DBUtil.pushDataUtil import pushData
 from RestClientHelper.ClientConnectionHelper import *
 from flask import Blueprint
 
+from unique_id_generator.unique_id_generator import give_new_unique_id
+
 client = MongoClient(mongoClient)
 db = client.INVENTORY
 
@@ -81,6 +83,61 @@ def delete_data():
             status = db.LISTED_STOCKS.delete_many(request.get_json())
             # print(request.get_json())
             return dumps({'delete': 'SUCCESS'})
+        else:
+            return 'Content-Type not supported'
+    except Exception as e:
+        return dumps({'error': str(e)})
+
+
+# pass following info into this
+{
+    "Owner_Id": "Amit22",
+    "Ticker_Symbol": "BSL",
+    "Price_Per_Unit": 323,
+    "Units": 444
+}
+
+
+@query_blueprint.route("/ipeo/add_ipeo_sell_order", methods=['POST'])
+def add_owner_sell_order():
+    try:
+        content_type = request.headers.get('Content-Type')
+        if (content_type == 'application/json'):
+            request_json = request.get_json()
+            ticker_symbol = request_json["Ticker_Symbol"]
+            owner_id = request.json["Owner_Id"]
+            price_per_unit = int(request.json["Price_Per_Unit"])
+            units = int(request_json["Units"])
+
+            id_stat = give_new_unique_id()
+
+            # add sell order
+            if id_stat[0] != False:
+
+                client.Company_Sell_Order[ticker_symbol].insert_one(
+                    {
+                        "_id": id_stat[1],
+                        "Units": units,
+                        "Price_Per_Unit": price_per_unit,
+                        "Seller_Id": owner_id,
+                        "Is_Owner": 1
+
+                    }
+                )
+
+                client[owner_id].Sell_Order.insert_one(
+                    {
+                        "_id": id_stat[1],
+                        "Units": units,
+                        "Price_Per_Unit": price_per_unit,
+                        "Seller_Id": owner_id,
+                        "Is_Owner": 1,
+                        "Ticker_Symbol": ticker_symbol
+                    }
+                )
+
+            # print(request.get_json())
+            return dumps({'ipeo': 'SUCCESS'})
         else:
             return 'Content-Type not supported'
     except Exception as e:
