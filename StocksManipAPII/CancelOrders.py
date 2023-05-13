@@ -9,7 +9,7 @@ from RestClientHelper.ClientConnectionHelper import *
 from flask import Blueprint
 from Wallet import UsersWalletUtils
 
-cance_orders_blueprint = Blueprint('cancel_orders', 'REST_API')
+cancel_orders_blueprint = Blueprint('cancel_orders', 'REST_API')
 
 client = MongoClient(mongoClient)
 
@@ -20,7 +20,7 @@ client = MongoClient(mongoClient)
 #     "PIN": "5432122",
 #     "Order_Id":"4"
 # }
-@cance_orders_blueprint.route("/cancel/buy_order", methods=['POST'])
+@cancel_orders_blueprint.route("/cancel/buy_order", methods=['POST'])
 def cancel_buy_order():
     try:
 
@@ -62,7 +62,7 @@ def cancel_buy_order():
 # }
 
 
-@cance_orders_blueprint.route("/cancel/sell_order", methods=['POST'])
+@cancel_orders_blueprint.route("/cancel/sell_order", methods=['POST'])
 def cancel_sell_order():
     try:
 
@@ -117,6 +117,82 @@ def cancel_sell_order():
                 return dumps('Order Cancelled')
 
             return dumps({'error': 'Order does not exist'})
+        else:
+            return 'Content-Type not supported'
+    except Exception as e:
+        return dumps({'error': str(e)})
+
+# pass the following info to this
+# {
+#     "Ticker_Symbol":"BSL"
+# }
+
+
+@cancel_orders_blueprint.route("/price/avg_buy_price", methods=['POST'])
+def avg_buy_price():
+    try:
+
+        content_type = request.headers.get('Content-Type')
+        if (content_type == 'application/json'):
+            request_json = request.get_json()
+            ticker_symbol = request_json["Ticker_Symbol"]
+
+            ipeo_price = json.loads(
+                dumps(client.INVENTORY.LISTED_STOCKS.find({"Ticker_Symbol": ticker_symbol})))
+
+            all_buy_orders = json.loads(
+                dumps(client.Company_Buy_Order[ticker_symbol].find()))
+
+            total_price: int = int(ipeo_price[0]['IPEO_Price'])
+            total_div: int = 1
+
+            for ind_buy_order in all_buy_orders:
+                total_price += int(ind_buy_order['Price_Per_Unit']
+                                   * ind_buy_order['Units'])
+                total_div += int(ind_buy_order['Units'])
+                # print(ind_buy_order)
+
+                # temp = json.loads(
+
+            return dumps(total_price/total_div)
+        else:
+            return 'Content-Type not supported'
+    except Exception as e:
+        return dumps({'error': str(e)})
+
+# pass the following info to this
+# {
+#     "Ticker_Symbol":"BSL"
+# }
+
+
+@cancel_orders_blueprint.route("/price/avg_sell_price", methods=['POST'])
+def avg_sell_price():
+    try:
+
+        content_type = request.headers.get('Content-Type')
+        if (content_type == 'application/json'):
+            request_json = request.get_json()
+            ticker_symbol = request_json["Ticker_Symbol"]
+
+            ipeo_price = json.loads(
+                dumps(client.INVENTORY.LISTED_STOCKS.find({"Ticker_Symbol": ticker_symbol})))
+
+            all_sell_orders = json.loads(
+                dumps(client.Company_Sell_Order[ticker_symbol].find()))
+
+            total_price: int = int(ipeo_price[0]['IPEO_Price'])
+            total_div: int = 1
+
+            for ind_sell_order in all_sell_orders:
+                total_price += int(ind_sell_order['Price_Per_Unit']
+                                   * ind_sell_order['Units'])
+                total_div += int(ind_sell_order['Units'])
+                # print(ind_sell_order)
+
+                # temp = json.loads(
+
+            return dumps(total_price/total_div)
         else:
             return 'Content-Type not supported'
     except Exception as e:

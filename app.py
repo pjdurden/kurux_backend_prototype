@@ -16,7 +16,7 @@ app.register_blueprint(UsersWalletAPI.wallet_blueprint)
 app.register_blueprint(BuyStocksAPI.buy_stocks_blueprint)
 app.register_blueprint(SellStocksAPI.sell_stocks_blueprint)
 app.register_blueprint(User_Details_Apis.user_details_blueprint)
-app.register_blueprint(CancelOrders.cance_orders_blueprint)
+app.register_blueprint(CancelOrders.cancel_orders_blueprint)
 
 # app.run(debug=True, use_debugger=False, use_reloader=False)
 
