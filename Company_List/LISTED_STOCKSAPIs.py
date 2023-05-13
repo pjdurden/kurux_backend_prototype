@@ -20,9 +20,25 @@ query_blueprint = Blueprint('queries', 'REST_API')
 # All the units are in Rs
 
 
-@query_blueprint.route("/crud/add_company", methods=['POST'])
-# stock_Name, stock_Price,stock_Sold,stock_Sold,TVL,netIncome,revenue,Asset
+# {
+#   "Company_Name": "Bisleri Ltd",
+#   "Owner": "Amit22",
+#   "Ticker_Symbol": "BSL",
+#   "IPEO_Price": "55",
+#   "Company_Website": "https://www.google.com",
+#   "Company_Linkedin": "linkedin id",
+#   "Product_Service_Desc": "para over the company's desc",
+#   "Earlier_Fund_Raised": "",
+#   "Revenue": "",
+#   "Is_Profitable": "",
+#   "Company_Size": "",
+#   "Existing_Liabilities": "",
+#   "Pitch_Link": ""
+# }
+
 # the company info needs to be send as a json object for POST request body for it to work with this
+
+@query_blueprint.route("/crud/add_company", methods=['POST'])
 def add_data():
     try:
         # dataToPush = pushData('ABC', '100')
@@ -31,6 +47,33 @@ def add_data():
         if (content_type == 'application/json'):
             status = db.LISTED_STOCKS.insert_one(request.get_json())
             return dumps({'insert': 'SUCCESS'})
+        else:
+            return 'Content-Type not supported'
+    except Exception as e:
+        return dumps({'error': str(e)})
+
+
+# pass the following info to this
+# {
+#     "Ticker_Symbol":"BSL"
+# }
+
+@query_blueprint.route("/crud/get_company_details", methods=['POST'])
+def get_company_details():
+    try:
+
+        content_type = request.headers.get('Content-Type')
+        if (content_type == 'application/json'):
+            request_json = request.get_json()
+            ticker_symbol = request_json["Ticker_Symbol"]
+
+            status = json.loads(
+                dumps(db.LISTED_STOCKS.find({"Ticker_Symbol": ticker_symbol})))
+
+            if len(status) == 0:
+                return dumps({'status': 'Company does not exist'})
+
+            return status[0]
         else:
             return 'Content-Type not supported'
     except Exception as e:
@@ -90,12 +133,12 @@ def delete_data():
 
 
 # pass following info into this
-{
-    "Owner_Id": "Amit22",
-    "Ticker_Symbol": "BSL",
-    "Price_Per_Unit": 323,
-    "Units": 444
-}
+# {
+#     "Owner_Id": "Amit22",
+#     "Ticker_Symbol": "BSL",
+#     "Price_Per_Unit": 323,
+#     "Units": 444
+# }
 
 
 @query_blueprint.route("/ipeo/add_ipeo_sell_order", methods=['POST'])
