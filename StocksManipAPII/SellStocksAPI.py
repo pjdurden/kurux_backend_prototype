@@ -4,12 +4,15 @@ from flask import request
 from pymongo import MongoClient
 from bson.json_util import dumps
 import json
+from Auth.AuthenticateAPI import check_pin
 from env import *
 from DBUtil.pushDataUtil import pushData
 from RestClientHelper.ClientConnectionHelper import *
 from flask import Blueprint
 from Wallet import UsersWalletUtils
 from bson.objectid import ObjectId
+
+from unique_id_generator.unique_id_generator import give_new_unique_id
 
 
 client = MongoClient(mongoClient)
@@ -32,7 +35,7 @@ sell_stocks_blueprint = Blueprint('sell_ipo_equity', 'REST_API')
 # }
 
 
-@sell_stocks_blueprint.route("/sell_equity", methods=['POST'])
+@sell_stocks_blueprint.route("/equity/sell_equity", methods=['POST'])
 def sell_equity():
     try:
         # dataToPush = pushData('ABC', '100')
@@ -43,12 +46,15 @@ def sell_equity():
             seller_id = request_json["Seller_Id"]
             seller_pin = request_json["PIN"]
             company_to_sell = request_json["Ticker_Symbol"]
-            units_to_sell = request_json["Units"]
-            price_per_unit = request_json["Price_Per_Unit"]
+            units_to_sell = int(request_json["Units"])
+            price_per_unit = int(request_json["Price_Per_Unit"])
             # print(user_name, user_pass)
 
+            if not check_pin(seller_id, seller_pin)[0]:
+                return dumps({'error': 'Pin entered is wrong'})
+
             company_info = dumps(inventory_collection.find(
-                {"Ticket_Symbol": company_to_sell}))
+                {"Ticker_Symbol": company_to_sell}))
 
             company_entry = json.loads(company_info)
 
@@ -57,6 +63,12 @@ def sell_equity():
 
             if(int(units_to_sell) < 0):
                 return dumps({'error': 'Invalid value in Units'})
+
+            portfolio_details = json.loads(
+                dumps(client[seller_id]['Portfolio'].find({"Ticker_Symbol": company_to_sell})))
+
+            if len(portfolio_details) == 0 or int(portfolio_details[0]['Units']) < units_to_sell:
+                return dumps({'error': "User does not have enough equity units to sell"})
 
             is_owner = (company_entry[0]['Owner'] == seller_id)
 
@@ -72,7 +84,7 @@ def sell_equity():
 
             # sending money
             UsersWalletUtils.send_money(
-                "KuruX", seller_id, "003579", amount_to_transfer)
+                "Intermediate", seller_id, "8008135", amount_to_transfer)
 
             transfer_stock_status = transfer_stocks_sellorder(seller_id, buyer_order_info,
                                                               units_to_sell, company_to_sell, price_per_unit, company_entry[0]['Company_Name'])
@@ -97,68 +109,87 @@ portfolio_db = client.Users
 
 def transfer_stocks_sellorder(seller_id, buyer_order_info, units, company_to_sell, selling_price, company_name):
     try:
-        portfolio_collection = portfolio_db['Portfolio']
-        seller_user_dump = dumps(
-            portfolio_collection.find({'User_Id': seller_id}))
-        buyer_user_dump = dumps(portfolio_collection.find(
-            {'User_Id': buyer_order_info['Buyer_Id']}))
 
-        seller_user_inf = json.loads(seller_user_dump)
+        buyer_id = buyer_order_info['Buyer_Id']
+
+        buyer_user_dump = dumps(
+            client[buyer_id]['Portfolio'].find({'Ticker_Symbol': company_to_sell}))
+
         buyer_user_inf = json.loads(buyer_user_dump)
 
-        # print(seller_user_inf[0]['Stocks']['0'])
+        seller_user_dump = dumps(
+            client[seller_id]['Portfolio'].find(
+                {"Ticker_Symbol": company_to_sell})
+        )
+        seller_user_inf = json.loads(seller_user_dump)
 
-        buyer_port_index = -1
-
-        for buyer_ind_stocks in buyer_user_inf[0]['Stocks']:
-            if buyer_user_inf[0]['Stocks'][buyer_ind_stocks]['Ticket_Symbol'] == company_to_sell:
-                buyer_port_index = buyer_ind_stocks
-                break
-            print(buyer_user_inf[0]['Stocks'][buyer_ind_stocks])
-
-        seller_port_index = -1
-
-        for seller_ind_stocks in seller_user_inf[0]['Stocks']:
-            if seller_user_inf[0]['Stocks'][seller_ind_stocks]['Ticket_Symbol'] == company_to_sell:
-                seller_port_index = seller_ind_stocks
-                break
-            print(seller_user_inf[0]['Stocks'][seller_ind_stocks])
-
-        # print(buyer_port_index)
-
-        # print("\n\n")
-
-        # print(seller_port_index)
-
-        # print(seller_order_info)
-
-        # removing buy order
+        # remove buy order
         client.Company_Buy_Order[company_to_sell].delete_one(
-            {"_id": ObjectId(buyer_order_info['_id']['$oid'])})
-
-        # print(seller_remaining_units)
-
-        # print(seller_user_inf[0]['Stocks'][seller_port_index])
-
-        buying_price = buyer_order_info['Price_Per_Unit']
-
-        if buyer_port_index != -1:
-            buyer_user_inf[0]['Stocks'][buyer_port_index]['Stock_Units'] = int(
-                buyer_user_inf[0]['Stocks'][buyer_port_index]['Stock_Units']) + int(units)
-        else:
-            size_buyer = str(len(buyer_user_inf[0]['Stocks']))
-            buyer_user_inf[0]['Stocks'][size_buyer] = {
-                'Company_Name': company_name, 'Ticket_Symbol': company_to_sell, 'Stock_Units': units, 'Buying_Price': buying_price}
-        portfolio_collection.update_one(
-            {"User_Id": buyer_order_info['Buyer_Id']},
             {
-                "$set": {
-                    "Stocks": buyer_user_inf[0]['Stocks']
-                }
+                "_id": buyer_order_info['_id']
             }
         )
 
-        remove_stock_seller(seller_id, units, company_to_sell)
+        client[buyer_id].Buy_Order.delete_one(
+            {
+                "_id": buyer_order_info['_id']
+            }
+        )
+
+        # Transfering stock
+
+        # increasing stock Buyer
+        money_spent = int(units * buyer_order_info['Price_Per_Unit'])
+        if len(buyer_user_inf) != 0:
+            client[buyer_id]['Portfolio'].update_one(
+                {"Ticker_Symbol": company_to_sell},
+                {
+                    "$inc": {"Units": units}
+                }
+            )
+        else:
+            client[buyer_id]['Portfolio'].insert_one(
+                {
+                    "Company_Name": company_name,
+                    "Ticker_Symbol": company_to_sell,
+                    "Units": units
+                }
+            )
+
+        # decreasing stock seller
+        seller_portfolio_units = seller_user_inf[0]['Units']
+        if seller_portfolio_units == units:
+            client[seller_id]['Portfolio'].delete_one(
+                {
+                    "Ticker_Symbol": company_to_sell
+                }
+            )
+        else:
+            client[seller_id]['Portfolio'].update_one(
+                {"Ticker_Symbol": company_to_sell},
+                {
+                    "$inc": {"Units": -units}
+                }
+            )
+
+        # adding order_history
+        client[buyer_id]['Order_History'].insert_one(
+            {
+                "Ticker_Symbol": company_to_sell,
+                "Type": "Buy_Order",
+                "Units": units,
+                "Price_Per_Unit": buyer_order_info['Price_Per_Unit']
+            }
+        )
+
+        client[seller_id]['Order_History'].insert_one(
+            {
+                "Ticker_Symbol": company_to_sell,
+                "Type": "Sell_Order",
+                "Units": units,
+                "Price_Per_Unit": selling_price
+            }
+        )
 
         return [True, "Stock Transfer Done"]
 
@@ -181,14 +212,15 @@ def find_buy_order(company_to_sell, units_to_sell, price_per_unit, seller_id, is
             return [False, "Invalid value in Units"]
 
         chosen_buy_order = []
-        current_price_min = -sys.maxsize + 1
+        current_price_max = -sys.maxsize + 1
 
         for ind_buy_order in company_entry:
-            if int(ind_buy_order['Price_Per_Unit']) > int(current_price_min):
+            # print(ind_buy_order)
+            if int(ind_buy_order['Price_Per_Unit']) > int(current_price_max):
 
                 if int(ind_buy_order['Units']) == int(units_to_sell):
                     chosen_buy_order = ind_buy_order
-                    current_price_min = ind_buy_order['Price_Per_Unit']
+                    current_price_max = ind_buy_order['Price_Per_Unit']
 
         if(chosen_buy_order == [] or int(chosen_buy_order['Units']) < int(units_to_sell) or int(chosen_buy_order['Price_Per_Unit']) < int(price_per_unit)):
             status = add_sell_order(company_to_sell, price_per_unit,
@@ -211,127 +243,53 @@ company_seller_db = client.Company_Sell_Order
 
 def add_sell_order(company_to_sell, price_per_unit, units_to_sell, seller_id, is_owner):
     try:
-        sell_order_collection = company_seller_db[company_to_sell]
 
-        sell_capacity = check_company_units_in_portfolio(
-            seller_id, company_to_sell)
+        # remove stock from portfolio
+        status_port = json.loads(
+            dumps(client[seller_id]['Portfolio'].find({"Ticker_Symbol": company_to_sell})))
 
-        if int(sell_capacity[1]) < int(units_to_sell):
-            return [False, "User Doesn't have enough Units to sell"]
+        money_recieved = -(price_per_unit * units_to_sell)
 
-        status = sell_order_collection.insert_one(
-            {
-                "Units": units_to_sell,
-                "Price_Per_Unit": price_per_unit,
-                "Seller_Id": seller_id,
-                "Is_Owner": int(is_owner)
-
-            }
-        )
-
-        seller_user_inf = json.loads(
-            dumps(client.Users.Portfolio.find({'User_Id': seller_id})))
-
-        seller_port_index = sell_capacity[2]
-
-        seller_user_inf[0]['Stocks'][seller_port_index]['Stock_Units'] = int(
-            seller_user_inf[0]['Stocks'][seller_port_index]['Stock_Units']) - int(units_to_sell)
-
-        temp = {}
-
-        counter: int = 0
-
-        print(type(seller_user_inf[0]['Stocks']))
-
-        # print(type(seller_user_inf['Stocks']))
-
-        for seller_ind in seller_user_inf[0]['Stocks']:
-            if int(seller_user_inf[0]['Stocks'][seller_ind]['Stock_Units']) != 0:
-                print(seller_user_inf[0]['Stocks'][seller_ind])
-                temp[str(counter)] = seller_user_inf[0]['Stocks'][seller_ind]
-                counter += 1
-            print(seller_ind)
-
-        # updating portfolio
-        client.Users.Portfolio.update_one(
-            {"User_Id": seller_id},
-            {
-                "$set": {
-                    "Stocks": temp
+        decrement_stocks = -units_to_sell
+        # print(status_port[0]['Units'])
+        if int(status_port[0]['Units']) == units_to_sell:
+            client[seller_id]['Portfolio'].delete_one(
+                {"Ticker_Symbol": company_to_sell})
+        else:
+            client[seller_id]['Portfolio'].update_one(
+                {"Ticker_Symbol": company_to_sell},
+                {
+                    "$inc": {"Units": decrement_stocks}
                 }
-            }
-        )
+            )
+
+        id_stat = give_new_unique_id()
+
+        # add sell order
+        if id_stat[0] != False:
+
+            client.Company_Sell_Order[company_to_sell].insert_one(
+                {
+                    "_id": id_stat[1],
+                    "Units": units_to_sell,
+                    "Price_Per_Unit": price_per_unit,
+                    "Seller_Id": seller_id,
+                    "Is_Owner": int(is_owner)
+
+                }
+            )
+
+            client[seller_id].Sell_Order.insert_one(
+                {
+                    "_id": id_stat[1],
+                    "Units": units_to_sell,
+                    "Price_Per_Unit": price_per_unit,
+                    "Seller_Id": seller_id,
+                    "Is_Owner": int(is_owner),
+                    "Ticker_Symbol": company_to_sell
+                }
+            )
 
         return [True, "Sell Order Added"]
-    except Exception as e:
-        return [False, {'error': str(e)}]
-
-
-def remove_stock_seller(seller_id, units_to_sell, company_to_sell):
-    try:
-        # remove Stocks from Seller portfolio
-        seller_user_inf = json.loads(
-            dumps(client.Users.Portfolio.find({'User_Id': seller_id})))
-        sell_capacity = check_company_units_in_portfolio(
-            seller_id, company_to_sell)
-
-        seller_port_index = sell_capacity[2]
-
-        seller_user_inf[0]['Stocks'][seller_port_index]['Stock_Units'] = int(
-            seller_user_inf[0]['Stocks'][seller_port_index]['Stock_Units']) - int(units_to_sell)
-
-        temp = {}
-
-        counter: int = 0
-
-        print(type(seller_user_inf[0]['Stocks']))
-
-        # print(type(seller_user_inf['Stocks']))
-
-        for seller_ind in seller_user_inf[0]['Stocks']:
-            if int(seller_user_inf[0]['Stocks'][seller_ind]['Stock_Units']) != 0:
-                print(seller_user_inf[0]['Stocks'][seller_ind])
-                temp[str(counter)] = seller_user_inf[0]['Stocks'][seller_ind]
-                counter += 1
-            print(seller_ind)
-
-        # updating portfolio
-        client.Users.Portfolio.update_one(
-            {"User_Id": seller_id},
-            {
-                "$set": {
-                    "Stocks": temp
-                }
-            }
-        )
-        return [True, "Success"]
-    except Exception as e:
-        return [False, {'error': str(e)}]
-
-
-def check_company_units_in_portfolio(user_id, company_id):
-    try:
-        portfolio_collection = portfolio_db['Portfolio']
-        user_dump = dumps(
-            portfolio_collection.find({'User_Id': user_id}))
-
-        user_inf = json.loads(user_dump)
-
-        # print(user_inf[0]['Stocks']['0'])
-
-        port_index = -1
-
-        for ind_stocks in user_inf[0]['Stocks']:
-            if user_inf[0]['Stocks'][ind_stocks]['Ticket_Symbol'] == company_id:
-                port_index = ind_stocks
-                break
-            # print(user_inf[0]['Stocks'][ind_stocks])
-
-        result = 0
-
-        if port_index != -1:
-            result = user_inf[0]['Stocks'][ind_stocks]['Stock_Units']
-
-        return [True, result, port_index]
     except Exception as e:
         return [False, {'error': str(e)}]
