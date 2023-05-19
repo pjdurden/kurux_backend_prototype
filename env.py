@@ -1,3 +1,5 @@
+# import 'dotenv/config'
 # mongoClient = 'localhost:27017'
-mongoClient = 'mongodb+srv://KuruX_Test:KuruX_Test@kuruxtest.dcvfgnk.mongodb.net/?retryWrites=true&w=majority'
+# mongoClient = 'mongodb+srv://KuruX_Test:KuruX_Test@kuruxtest.dcvfgnk.mongodb.net/?retryWrites=true&w=majority'
+mongoClient = 'mongodb+srv://vercel-admin-user-6467b59f04b5e028bf014c23:z2jC0E6NDtjUNZKF@kuruxtest.dcvfgnk.mongodb.net/myFirstDatabase?retryWrites=true&w=majority'
 dbName = 'LISTED_STOCKS'
