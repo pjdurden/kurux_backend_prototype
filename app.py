@@ -6,9 +6,11 @@ from Auth import AuthenticateAPI
 from Wallet import UsersWalletAPI
 from StocksManipAPII import BuyStocksAPI, SellStocksAPI, CancelOrders
 from User_Details import User_Details_Apis
+from flask_cors import CORS
 
 
 app = Flask('REST_API')
+CORS(app)  # This will enable CORS for all routes
 
 app.register_blueprint(LISTED_STOCKSAPIs.query_blueprint)
 app.register_blueprint(AuthenticateAPI.authenticate_blueprint)
