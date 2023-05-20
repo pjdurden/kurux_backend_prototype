@@ -92,13 +92,13 @@ def buy_equity():
                                                              units_to_buy, company_to_buy, price_per_unit, company_entry[0]['Company_Name'], total_money_spent)
 
             if(transfer_stock_status[0] == False):
-                return transfer_stock_status[1]
+                return dumps(transfer_stock_status[1])
             # print(status[0])
             # for j in status:
             #     print(j)
             # print(status_pass)
 
-            return transfer_stock_status[1]
+            return dumps(transfer_stock_status[1])
 
         else:
             return 'Content-Type not supported'
