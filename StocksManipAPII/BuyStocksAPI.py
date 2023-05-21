@@ -98,7 +98,7 @@ def buy_equity():
             #     print(j)
             # print(status_pass)
 
-            return dumps(transfer_stock_status[1])
+            return dumps({'msg': transfer_stock_status[1]})
 
         else:
             return 'Content-Type not supported'
